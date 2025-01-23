@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esp_log.h"
-#define TAG "Anemometer"
+#define TAG "FloatLevel"
 
 void inline printHexString(char* ptr, int len)
 {

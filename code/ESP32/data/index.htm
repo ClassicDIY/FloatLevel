@@ -1,12 +1,12 @@
 <html>
     <head>
-	<title>Anemometer</title>
+	<title>Water Level</title>
 
 	     <style> 
           body { 
             color: white; 
           }
-		  .wind
+		  .level
 			{
 				margin-left: 10px;
 				color: #000080;
@@ -26,10 +26,10 @@
 		<div >
     <canvas id="CW_gauge" width="450" height="450"
                data-type="canv-gauge"
-               data-title="Wind Speed"
+               data-title="Water Level"
                data-major-ticks="0 10 20 30 40 50 60 70 80 90 100"
                data-minor-ticks="5"            
-               data-units="Kmh"
+               data-units="%"
                data-value-format="2.1"
                data-max-value="100"
                data-min-value="0"
@@ -39,8 +39,7 @@
 	</div>
 	
 
-	<div > 
-		<div><h1 class="wind" >High Wind Speed: </h1> <div id="highWindTime" class="wind" >00:00:00</div> <div id="highWind" class="wind" >00</div> <div class="wind" >Km/h</div></div>
+	<div class="level"> 
 		<p>
             <a href="./config">Configuration Page</a> 
         </p>
@@ -68,13 +67,7 @@
 				  socket.onmessage = function (e) {
 					console.log('Server: ', e.data);
 					var anem = eval('(' + e.data + ')');
-					Gauge.Collection.get('CW_gauge').setValue(anem.ws)
-					document.getElementById("highWind").innerHTML=anem.hws; 
-					var date = new Date(anem.hwt*1000);
-					var hours = date.getHours();
-					var minutes = "0" + date.getMinutes();
-					var seconds = "0" + date.getSeconds();
-					document.getElementById("highWindTime").innerHTML = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+					Gauge.Collection.get('CW_gauge').setValue(anem.wl)
 				  };
 
 			} else {

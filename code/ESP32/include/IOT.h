@@ -2,22 +2,30 @@
 
 #include "WiFi.h"
 #include "ArduinoJson.h"
+#include <EEPROM.h>
+extern "C"
+{
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+}
+#include "Log.h"
 #include "AsyncMqttClient.h"
-#include "IotWebConf.h"
+#include <IotWebConf.h>
+#include <IotWebConfUsing.h>
+#include <IotWebConfESP32HTTPUpdateServer.h>
+#include "Defines.h"
 
-#define STR_LEN 64    // general string buffer size
-#define CONFIG_LEN 32 // configuration string buffer size
-
-namespace AnemometerNS
+namespace FloatLevelNS
 {
 class IOT
 {
 public:
     IOT(WebServer* pWebServer);
     void Init();
-    void Run();
+    void Process(float waterLevel);
+    boolean Run();
     void publish(const char *subtopic, const char *value, boolean retained = false);
 private:
     bool _clientsConfigured = false;
 };
-} // namespace AnemometerNS
+} // namespace FloatLevelNS

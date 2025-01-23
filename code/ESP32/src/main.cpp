@@ -10,79 +10,68 @@
 #include <Thread.h>
 #include "Log.h"
 #include "IOT.h"
-#include "Anemometer.h"
+#include "Sensor.h"
 
-using namespace AnemometerNS;
+#define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
-Anemometer _anemometer(AnemometerPin);
+using namespace FloatLevelNS;
+
+Sensor _Sensor(SensorPin);
 WebServer _webServer(80);
 WebSocketsServer _webSocket = WebSocketsServer(81);
 boolean _wsConnected = false;
 ThreadController _controller = ThreadController();
-Thread *_workerThreadWindMonitor = new Thread();
-Thread *_workerThreadMQTT = new Thread();
+Thread *_workerThreadWaterLevelMonitor = new Thread();
 IOT _iot = IOT(&_webServer);
 
 unsigned long _epoch = 0; //Unix time in seconds
 unsigned long _lastNTP = 0;
-unsigned long _lastHighWindTime = 0;
-float _highWindSpeed = 0;
-float _lastWindSpeed = 0;
-boolean _updateMQTT_windSpeed = false;
-boolean _updateMQTT_highWindSpeed = false;
-StaticJsonDocument<128> _doc;
+float _lastWaterLevel = 0;
 
-void runMQTT()
+hw_timer_t *_watchdogTimer = NULL;
+
+void IRAM_ATTR resetModule()
 {
-	if (_updateMQTT_windSpeed)
-	{
-		String s;
-		_doc.clear();
-		_doc["windspeed"] = _lastWindSpeed;
-		serializeJson(_doc, s);
-		_iot.publish("stat", s.c_str());
-		_updateMQTT_windSpeed = false;
-	}
-	if (_updateMQTT_highWindSpeed)
-	{
-		String s;
-		_doc.clear();
-		_doc["hws"] = _highWindSpeed;
-		_doc["hwt"] = _lastHighWindTime;
-		serializeJson(_doc, s);
-		_iot.publish("stat", s.c_str());
-		_updateMQTT_highWindSpeed = false;
-	}
-
+	// ets_printf("watchdog timer expired - rebooting\n");
+	esp_restart();
 }
 
-void runWindMonitor()
+void init_watchdog()
 {
-	float windSpeed = _anemometer.WindSpeed();
-	if (abs(_lastWindSpeed - windSpeed) > AnemometerWindSpeedGranularity) // limit broadcast to AnemometerWindSpeedGranularity km/h changes
+	if (_watchdogTimer == NULL)
 	{
-		_updateMQTT_windSpeed = true;
-		windSpeed = windSpeed <= AnemometerWindSpeedGranularity ? 0 : windSpeed;
-		_lastWindSpeed = windSpeed;
-		if (_highWindSpeed < windSpeed)
-		{
-			_updateMQTT_highWindSpeed = true;
-			_highWindSpeed = windSpeed;
-			struct timeval tv;
-			gettimeofday(&tv, NULL);
-			logd("unixtime: %d", tv.tv_sec);
-			_lastHighWindTime = tv.tv_sec;
-		}
+		_watchdogTimer = timerBegin(0, 80, true);					   //timer 0, div 80
+		timerAttachInterrupt(_watchdogTimer, &resetModule, true);	  //attach callback
+		timerAlarmWrite(_watchdogTimer, WATCHDOG_TIMER * 1000, false); //set time in us
+		timerAlarmEnable(_watchdogTimer);							   //enable interrupt
+	}
+}
+
+void feed_watchdog()
+{
+	if (_watchdogTimer != NULL)
+	{
+		timerWrite(_watchdogTimer, 0); // feed the watchdog
+	}
+}
+
+void runWaterLevelMonitor()
+{
+	float WaterLevel = _Sensor.WaterLevel();
+	if (abs(_lastWaterLevel - WaterLevel) > SensorWaterLevelGranularity) // limit broadcast to SensorWaterLevelGranularity % change
+	{
+		WaterLevel = WaterLevel <= SensorWaterLevelGranularity ? 0 : WaterLevel;
+		_lastWaterLevel = WaterLevel;
+		_iot.Process(WaterLevel);
 		if (_wsConnected)
 		{
 			String s;
-			_doc.clear();
-			_doc["ws"] = windSpeed;
-			_doc["hws"] = _highWindSpeed;
-			_doc["hwt"] = _lastHighWindTime;
-			serializeJson(_doc, s);
+			JsonDocument doc;
+			doc.clear();
+			doc["wl"] = WaterLevel;
+			serializeJson(doc, s);
 			_webSocket.broadcastTXT(s.c_str(), s.length());
-			logd("Wind Speed: %f JSON: %s", windSpeed, s.c_str());
+			logd("Water Level: %f JSON: %s", WaterLevel, s.c_str());
 		}
 	}
 }
@@ -100,6 +89,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lenght)
 		IPAddress ip = _webSocket.remoteIP(num);
 		logd("Client #[%u] connected from %d.%d.%d.%d url: %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
 		_wsConnected = true;
+		_lastWaterLevel = 0; //force update
 	}
 	break;
 	case WStype_ERROR:
@@ -166,15 +156,13 @@ void setup()
 		; // wait for serial port to connect.
 	}
 	// Configure main worker thread
-	_workerThreadWindMonitor->onRun(runWindMonitor);
-	_workerThreadWindMonitor->setInterval(20);
-	_controller.add(_workerThreadWindMonitor);
-	_workerThreadMQTT->onRun(runMQTT);
-	_workerThreadMQTT->setInterval(MQTT_PublishRate);
-	_controller.add(_workerThreadMQTT);
+	_workerThreadWaterLevelMonitor->onRun(runWaterLevelMonitor);
+	_workerThreadWaterLevelMonitor->setInterval(20);
+	_controller.add(_workerThreadWaterLevelMonitor);
 	setupFileSystem();
 	WiFi.onEvent(WiFiEvent);
 	_iot.Init();
+	init_watchdog();
 	_webServer.on("/", handleRoot);
 	logd("Setup Done");
 }
@@ -187,4 +175,5 @@ void loop()
 		_controller.run();
 		_webSocket.loop();
 	}
+	feed_watchdog(); 
 }
