@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "ESP32"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"system_error": "cpp",
+			"*.tcc": "cpp",
+			"istream": "cpp",
+			"functional": "cpp",
+			"array": "cpp",
+			"regex": "cpp",
+			"tuple": "cpp",
+			"type_traits": "cpp",
+			"utility": "cpp"
+		}
+	}
+}
