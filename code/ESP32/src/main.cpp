@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "IOT.h"
 #include "Sensor.h"
+#include "Pump.h"
 
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
@@ -23,6 +24,7 @@ boolean _wsConnected = false;
 ThreadController _controller = ThreadController();
 Thread *_workerThreadWaterLevelMonitor = new Thread();
 IOT _iot = IOT(&_webServer);
+Pump _pump = Pump(22,33);
 
 unsigned long _epoch = 0; //Unix time in seconds
 unsigned long _lastNTP = 0;
@@ -62,7 +64,7 @@ void runWaterLevelMonitor()
 	{
 		WaterLevel = WaterLevel <= SensorWaterLevelGranularity ? 0 : WaterLevel;
 		_lastWaterLevel = WaterLevel;
-		_iot.Process(WaterLevel);
+		_pump.Process(WaterLevel);
 		if (_wsConnected)
 		{
 			String s;
@@ -161,7 +163,8 @@ void setup()
 	_controller.add(_workerThreadWaterLevelMonitor);
 	setupFileSystem();
 	WiFi.onEvent(WiFiEvent);
-	_iot.Init();
+	_pump.setup(&_iot);
+	_iot.Init(&_pump);
 	init_watchdog();
 	_webServer.on("/", handleRoot);
 	logd("Setup Done");

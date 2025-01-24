@@ -15,15 +15,6 @@ WebServer* _pWebServer;
 HTTPUpdateServer _httpUpdater;
 IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, TAG, CONFIG_VERSION);
 
-#define STRING_LEN 128
-static const char chooserValues[][STRING_LEN] = { "red", "blue", "darkYellow" };
-static const char chooserNames[][STRING_LEN] = { "Red", "Blue", "Dark yellow" };
-
-char _level1[LEVEL_CONFIG_LEN];
-char _level2[LEVEL_CONFIG_LEN];
-char _level3[LEVEL_CONFIG_LEN];
-char _level4[LEVEL_CONFIG_LEN];
-
 char _tankName[IOTWEBCONF_WORD_LEN];
 char _willTopic[STR_LEN];
 char _mqttServer[IOTWEBCONF_WORD_LEN];
@@ -31,12 +22,6 @@ char _mqttPort[NUMBER_CONFIG_LEN];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
 char _rootTopicPrefix[64];
-u_int _uniqueId = 0;
-
-iotwebconf::IntTParameter<int16_t> levelParam1 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level1").label("Level 1").defaultValue(20).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Level 2").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Level 3").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Level 4").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
 
 iotwebconf::OptionalParameterGroup MQTT_group = iotwebconf::OptionalParameterGroup("MQTT", "MQTT", false);
 iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
@@ -47,41 +32,41 @@ iotwebconf::TextParameter mqttTankNameParam = iotwebconf::TextParameter("MQTT Ta
 
 iotwebconf::OptionalGroupHtmlFormatProvider optionalGroupHtmlFormatProvider;
 
-void publishDiscovery()
-{
-	char buffer[STR_LEN];
-	JsonDocument doc; // MQTT discovery
-	doc["name"] = _iotWebConf.getThingName();
-	sprintf(buffer, "%s_%X_WindSpeed", _iotWebConf.getThingName(), _uniqueId);
-	doc["unique_id"] = buffer;
-	doc["unit_of_measurement"] = "km-h";
-	doc["stat_t"] = "~/stat";
-	doc["stat_tpl"] = "{{ value_json.windspeed}}";
-	doc["avty_t"] = "~/tele/LWT";
-	doc["pl_avail"] = "Online";
-	doc["pl_not_avail"] = "Offline";
-	JsonObject device = doc["device"].to<JsonObject>(); 
-	device["name"] = _iotWebConf.getThingName();
-	device["sw_version"] = CONFIG_VERSION;
-	device["manufacturer"] = "ClassicDIY";
-	sprintf(buffer, "ESP32-Bit (%X)", _uniqueId);
-	device["model"] = buffer;
-	device["identifiers"] = _uniqueId;
-	doc["~"] = _rootTopicPrefix;
-	String s;
-	serializeJson(doc, s);
-	char configurationTopic[64];
-	sprintf(configurationTopic, "%s/sensor/%s/%X/WindSpeed/config", HOME_ASSISTANT_PREFIX, _iotWebConf.getThingName(), _uniqueId);
-	if (_mqttClient.publish(configurationTopic, 0, true, s.c_str(), s.length()) == 0)
-	{
-		loge("**** Configuration payload exceeds MAX MQTT Packet Size");
-	}
-}
+// void publishDiscovery()
+// {
+// 	char buffer[STR_LEN];
+// 	JsonDocument doc; // MQTT discovery
+// 	doc["name"] = _iotWebConf.getThingName();
+// 	sprintf(buffer, "%s_%X_WindSpeed", _iotWebConf.getThingName(), _uniqueId);
+// 	doc["unique_id"] = buffer;
+// 	doc["unit_of_measurement"] = "km-h";
+// 	doc["stat_t"] = "~/stat";
+// 	doc["stat_tpl"] = "{{ value_json.windspeed}}";
+// 	doc["avty_t"] = "~/tele/LWT";
+// 	doc["pl_avail"] = "Online";
+// 	doc["pl_not_avail"] = "Offline";
+// 	JsonObject device = doc["device"].to<JsonObject>(); 
+// 	device["name"] = _iotWebConf.getThingName();
+// 	device["sw_version"] = CONFIG_VERSION;
+// 	device["manufacturer"] = "ClassicDIY";
+// 	sprintf(buffer, "ESP32-Bit (%X)", _uniqueId);
+// 	device["model"] = buffer;
+// 	device["identifiers"] = _uniqueId;
+// 	doc["~"] = _rootTopicPrefix;
+// 	String s;
+// 	serializeJson(doc, s);
+// 	char configurationTopic[64];
+// 	sprintf(configurationTopic, "%s/sensor/%s/%X/WaterLevel/config", HOME_ASSISTANT_PREFIX, _iotWebConf.getThingName(), _uniqueId);
+// 	if (_mqttClient.publish(configurationTopic, 0, true, s.c_str(), s.length()) == 0)
+// 	{
+// 		loge("**** Configuration payload exceeds MAX MQTT Packet Size");
+// 	}
+// }
 
 void onMqttConnect(bool sessionPresent)
 {
 	logd("Connected to MQTT. Session present: %d", sessionPresent);
-	publishDiscovery();
+	// publishDiscovery();
 	_mqttClient.publish(_willTopic, 0, false, "Online");
 }
 
@@ -204,14 +189,14 @@ void configSaved()
 	logi("Configuration was updated.");
 }
 
-void IOT::Init()
+void IOT::Init(IOTCallbackInterface* iotCB)
 {
+	_iotCB = iotCB;
 	pinMode(FACTORY_RESET_PIN, INPUT_PULLUP);
 	_iotWebConf.setStatusPin(WIFI_STATUS_PIN);
 	_iotWebConf.setConfigPin(WIFI_AP_PIN);
 
 	// setup EEPROM parameters
-
    	MQTT_group.addItem(&mqttServerParam);
 	MQTT_group.addItem(&mqttPortParam);
    	MQTT_group.addItem(&mqttUserNameParam);
@@ -219,11 +204,7 @@ void IOT::Init()
 	MQTT_group.addItem(&mqttTankNameParam);
 	_iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
 
-	_iotWebConf.addSystemParameter(&levelParam1);
-	_iotWebConf.addSystemParameter(&levelParam2);
-	_iotWebConf.addSystemParameter(&levelParam3);
-	_iotWebConf.addSystemParameter(&levelParam4);
-
+	_iotWebConf.addParameterGroup(_iotCB->parameterGroup());
 	_iotWebConf.addParameterGroup(&MQTT_group);
 
 	// setup callbacks for IotWebConf
@@ -294,21 +275,7 @@ void IOT::Init()
 	_pWebServer->onNotFound([]() { _iotWebConf.handleNotFound(); });
 }
 
-void IOT::Process(float waterLevel)
-{
-	logi("Float number 1 is %s", (waterLevel > levelParam1.value()) ? "on" : "off");
 
-
-	if (_mqttClient.connected())
-	{
-		String s;
-		JsonDocument doc;
-		doc.clear();
-		doc["WaterLevel"] = waterLevel;
-		serializeJson(doc, s);
-		publish("stat", s.c_str());
-	}
-}
 
 boolean IOT::Run()
 {
@@ -359,15 +326,40 @@ boolean IOT::Run()
 	return rVal;
 }
 
-void IOT::publish(const char *subtopic, const char *value, boolean retained)
+void IOT::Publish(const char *subtopic, const char *value, boolean retained)
 {
 	if (_mqttClient.connected())
 	{
 		char buf[64];
-		sprintf(buf, "%s/%s", _rootTopicPrefix, subtopic);
+		sprintf(buf, "%s/stat/%s", _rootTopicPrefix, subtopic);
 		_mqttClient.publish(buf, 0, retained, value);
 	}
 }
 
+void IOT::Publish(const char *topic, float value, boolean retained)
+{
+	char buf[256];
+	snprintf_P(buf, sizeof(buf), "%.1f", value);
+	Publish(topic, buf, retained);
+}
+
+void IOT::PublishMessage(const char* topic, JsonDocument& payload) {
+	String s;
+	serializeJson(payload, s);
+	if (_mqttClient.publish(topic, 0, false, s.c_str(), s.length()) == 0)
+	{
+		loge("**** Configuration payload exceeds MAX MQTT Packet Size");
+	}
+}
+
+std::string IOT::getRootTopicPrefix() {
+	std::string s(_rootTopicPrefix); 
+	return s; 
+};
+
+std::string IOT::getThingName() {
+	 std::string s(_iotWebConf.getThingName());
+	  return s;
+}
 
 } // namespace SkyeTracker

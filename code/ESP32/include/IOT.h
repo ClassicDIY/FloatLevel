@@ -14,18 +14,27 @@ extern "C"
 #include <IotWebConfUsing.h>
 #include <IotWebConfESP32HTTPUpdateServer.h>
 #include "Defines.h"
+#include "IOTServiceInterface.h"
+#include "IOTCallbackInterface.h"
 
 namespace FloatLevelNS
 {
-class IOT
+class IOT : public IOTServiceInterface
 {
 public:
     IOT(WebServer* pWebServer);
-    void Init();
-    void Process(float waterLevel);
+    void Init(IOTCallbackInterface* iotCB);
+
     boolean Run();
-    void publish(const char *subtopic, const char *value, boolean retained = false);
+    void Publish(const char *subtopic, const char *value, boolean retained = false);
+    void Publish(const char *subtopic, float value, boolean retained = false);
+    void PublishMessage(const char* topic, JsonDocument& payload);
+    std::string getRootTopicPrefix();
+    u_int getUniqueId() { return _uniqueId;};
+    std::string getThingName();
 private:
     bool _clientsConfigured = false;
+    IOTCallbackInterface* _iotCB;
+    u_int _uniqueId = 0; // unique id from mac address NIC segment
 };
 } // namespace FloatLevelNS

@@ -15,3 +15,8 @@
 
 #define ADC_Resolution 4095.0
 #define SAMPLESIZE 10
+
+#define BUTTON_1 21
+#define BUTTON_2 19
+#define BUTTON_3 32
+#define BUTTON_4 33
