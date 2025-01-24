@@ -6,7 +6,7 @@
           body { 
             color: white; 
           }
-		  .level
+		  .pump
 			{
 				margin-left: 10px;
 				color: #000080;
@@ -15,7 +15,7 @@
 				text-align: left;
 				font-size: medium;
 				background: transparent;
-				display: inline;
+				display: inline-block;
 			}
         </style>
     </head>";
@@ -39,10 +39,14 @@
 	</div>
 	
 
-	<div class="level"> 
-		<p>
-            <a href="./config">Configuration Page</a> 
-        </p>
+	<div> 
+		<p><div class="pump"> Pump 1: <div id="pump1" class="pump">off</div> </div> </p>
+		<p><div class="pump"> Pump 2: <div id="pump2" class="pump">off</div> </div> </p>
+		<p><div class="pump"> Pump 3: <div id="pump3" class="pump">off</div> </div> </p>
+		<p><div class="pump"> Pump 4: <div id="pump4" class="pump">off</div> </div> </p>
+		
+ 		<p> <a href="./config">Configuration Page</a> </p>
+
 	</div>
 	      <script>
 		<!--- Start of gauge code  --->
@@ -68,6 +72,10 @@
 					console.log('Server: ', e.data);
 					var anem = eval('(' + e.data + ')');
 					Gauge.Collection.get('CW_gauge').setValue(anem.wl)
+					document.getElementById("pump1").innerHTML=anem.pump1; 
+					document.getElementById("pump2").innerHTML=anem.pump2; 
+					document.getElementById("pump3").innerHTML=anem.pump3; 
+					document.getElementById("pump4").innerHTML=anem.pump4; 
 				  };
 
 			} else {

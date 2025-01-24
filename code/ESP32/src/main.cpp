@@ -71,6 +71,10 @@ void runWaterLevelMonitor()
 			JsonDocument doc;
 			doc.clear();
 			doc["wl"] = WaterLevel;
+			doc["pump1"] = digitalRead(BUTTON_1) ? "on" : "off";
+			doc["pump2"] = digitalRead(BUTTON_2) ? "on" : "off";
+			doc["pump3"] = digitalRead(BUTTON_3) ? "on" : "off";
+			doc["pump4"] = digitalRead(BUTTON_4) ? "on" : "off";
 			serializeJson(doc, s);
 			_webSocket.broadcastTXT(s.c_str(), s.length());
 			logd("Water Level: %f JSON: %s", WaterLevel, s.c_str());
