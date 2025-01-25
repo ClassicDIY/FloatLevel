@@ -21,8 +21,8 @@ FloatLevel red (signal)  | A0 |
 Use 160 Ohm resister from A0 to GND
 FloatLevel black (Gnd) | 24VDC | Gnd |
 
-<p align="center">
-  <img src="./Pictures/ESP32%20Pinout.PNG" width="800"/>
+<p align="left">
+  <img src="./Pictures/diagram.png" width="800"/>
 </p>
 
 Used the following development tools;
