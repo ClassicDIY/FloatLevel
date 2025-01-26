@@ -32,9 +32,12 @@ public:
     std::string getRootTopicPrefix();
     u_int getUniqueId() { return _uniqueId;};
     std::string getThingName();
+    IOTCallbackInterface* IOTCB() { return _iotCB;}
 private:
     bool _clientsConfigured = false;
     IOTCallbackInterface* _iotCB;
     u_int _uniqueId = 0; // unique id from mac address NIC segment
 };
 } // namespace FloatLevelNS
+
+extern FloatLevelNS::IOT _iot;

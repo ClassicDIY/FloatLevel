@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "Log.h"
+#include "HelperFunctions.h"
 #include "Defines.h"
 #include "Pump.h"
 
@@ -22,17 +23,10 @@ String Pump::getRootHTML() {
 	String s;
 	s += "Pump:";
 		s += "<ul>";
-		// s += htmlConfigEntry<char *>(smtpServerParam.label, smtpServerParam.value());
-		// s += htmlConfigEntry<char *>(smtpPortParam.label, smtpPortParam.value());
-		// s += htmlConfigEntry<char *>(senderEmailParam.label, senderEmailParam.value());
-		// s += htmlConfigEntry<char *>(senderPasswordParam.label, senderPasswordParam.value());
-		// s += htmlConfigEntry<char *>(recipientEmailParam.label, recipientEmailParam.value());
-		// s += htmlConfigEntry<char *>(recipientNameParam.label, recipientNameParam.value());
-		// s += htmlConfigEntry<char *>(subjectParam.label, subjectParam.value());
-		// s += htmlConfigEntry<char *>(buttonParam1.label, buttonParam1.value());
-		// s += htmlConfigEntry<char *>(buttonParam2.label, buttonParam2.value());
-		// s += htmlConfigEntry<char *>(buttonParam3.label, buttonParam3.value());
-		// s += htmlConfigEntry<char *>(buttonParam4.label, buttonParam4.value());
+		s += htmlConfigEntry<int16_t>(levelParam1.label, levelParam1.value());
+		s += htmlConfigEntry<int16_t>(levelParam2.label, levelParam2.value());
+		s += htmlConfigEntry<int16_t>(levelParam3.label, levelParam3.value());
+		s += htmlConfigEntry<int16_t>(levelParam4.label, levelParam4.value());
 		s += "</ul>";;
 	return s;
 }
@@ -42,11 +36,10 @@ iotwebconf::ParameterGroup* Pump::parameterGroup() {
 }
 
 bool Pump::validate(iotwebconf::WebRequestWrapper* webRequestWrapper) {
-	// if ( requiredParam(webRequestWrapper, smtpServerParam) == false) return false;
-	// if ( requiredParam(webRequestWrapper, smtpPortParam) == false) return false;
-	// if ( requiredParam(webRequestWrapper, senderEmailParam) == false) return false;
-	// if ( requiredParam(webRequestWrapper, senderPasswordParam) == false) return false;
-	// if ( requiredParam(webRequestWrapper, recipientEmailParam) == false) return false;
+	 if ( requiredParam(webRequestWrapper, levelParam1) == false) return false;
+	 if ( requiredParam(webRequestWrapper, levelParam2) == false) return false;
+	 if ( requiredParam(webRequestWrapper, levelParam3) == false) return false;
+	 if ( requiredParam(webRequestWrapper, levelParam4) == false) return false;
 	return true;
 }
 
@@ -88,8 +81,6 @@ void Pump::Process(float waterLevel)
     doc["WaterLevel"] = waterLevel;
     serializeJson(doc, s);
     _pcb->Publish("stat", s.c_str(), false);
-
-
 }
 
 }

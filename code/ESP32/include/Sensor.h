@@ -15,5 +15,6 @@ namespace FloatLevelNS
 		float AddReading(float val);
 		float _rollingSum;
 		int _numberOfSummations;
+		int _count;
 	};
 }

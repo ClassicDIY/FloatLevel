@@ -8,6 +8,7 @@ namespace FloatLevelNS
 Sensor::Sensor(int sensorPin)
 {
 	_sensorPin = sensorPin;
+	_count = 0;
 }
 
 Sensor::~Sensor()
@@ -20,6 +21,13 @@ float Sensor::WaterLevel()
 	float rVal = 0;
 	// Get the mv value from the analog pin connected to the Sensor
 	double sensorVoltage = analogReadMilliVolts(_sensorPin);
+	#ifdef LOG_SENSOR_VOLTAGE
+	if (_count++ > 100)
+	{
+		logd("Sensor voltage: %f", sensorVoltage);
+		_count = 0;
+	}
+	#endif
 	// Convert voltage value to a % level using range of max and min voltages and level for the Sensor
 	if (sensorVoltage > SensorVoltageMin)
 	{
