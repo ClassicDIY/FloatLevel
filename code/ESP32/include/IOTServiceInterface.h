@@ -7,10 +7,11 @@ class IOTServiceInterface
 {
 public:
 
-    virtual void Publish(const char *subtopic, const char *value, boolean retained) = 0;
-    virtual void Publish(const char *subtopic, float value, boolean retained) = 0;
-    virtual void PublishMessage(const char* topic, JsonDocument& payload) = 0;
+    virtual boolean Publish(const char *subtopic, const char *value, boolean retained) = 0;
+    virtual boolean Publish(const char *subtopic, float value, boolean retained) = 0;
+    virtual boolean PublishMessage(const char* topic, JsonDocument& payload) = 0;
     virtual std::string getRootTopicPrefix() = 0;
+    virtual std::string getTankName() = 0;
     virtual u_int getUniqueId() = 0;
     virtual std::string getThingName() = 0;
 };

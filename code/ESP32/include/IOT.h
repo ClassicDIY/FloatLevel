@@ -26,10 +26,11 @@ public:
     void Init(IOTCallbackInterface* iotCB);
 
     boolean Run();
-    void Publish(const char *subtopic, const char *value, boolean retained = false);
-    void Publish(const char *subtopic, float value, boolean retained = false);
-    void PublishMessage(const char* topic, JsonDocument& payload);
+    boolean Publish(const char *subtopic, const char *value, boolean retained = false);
+    boolean Publish(const char *subtopic, float value, boolean retained = false);
+    boolean PublishMessage(const char* topic, JsonDocument& payload);
     std::string getRootTopicPrefix();
+    std::string getTankName();
     u_int getUniqueId() { return _uniqueId;};
     std::string getThingName();
     IOTCallbackInterface* IOTCB() { return _iotCB;}

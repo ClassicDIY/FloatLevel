@@ -6,81 +6,147 @@
 
 namespace FloatLevelNS
 {
-iotwebconf::ParameterGroup Pump_group = iotwebconf::ParameterGroup("pumps", "Pumps");
-iotwebconf::IntTParameter<int16_t> levelParam1 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level1").label("Level 1").defaultValue(20).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Level 2").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Level 3").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
-iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Level 4").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::ParameterGroup Pump_group = iotwebconf::ParameterGroup("pumps", "Pumps");
+	iotwebconf::IntTParameter<int16_t> levelParam1 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level1").label("Level 1").defaultValue(20).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Level 2").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Level 3").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Level 4").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
 
+	Pump::Pump(int pumpNumber, int gpioPin)
+	{
+		_pumpNumber = pumpNumber;
+		_gpioPin = gpioPin;
+	}
 
-Pump::Pump(int pumpNumber, int gpioPin)
-{
-	 _pumpNumber = pumpNumber;
-     _gpioPin = gpioPin;
-}
-
-String Pump::getRootHTML() {
-	String s;
-	s += "Pump:";
+	String Pump::getRootHTML()
+	{
+		String s;
+		s += "Pump:";
 		s += "<ul>";
 		s += htmlConfigEntry<int16_t>(levelParam1.label, levelParam1.value());
 		s += htmlConfigEntry<int16_t>(levelParam2.label, levelParam2.value());
 		s += htmlConfigEntry<int16_t>(levelParam3.label, levelParam3.value());
 		s += htmlConfigEntry<int16_t>(levelParam4.label, levelParam4.value());
-		s += "</ul>";;
-	return s;
-}
+		s += "</ul>";
+		;
+		return s;
+	}
 
-iotwebconf::ParameterGroup* Pump::parameterGroup() {
-	return &Pump_group;
-}
+	iotwebconf::ParameterGroup *Pump::parameterGroup()
+	{
+		return &Pump_group;
+	}
 
-bool Pump::validate(iotwebconf::WebRequestWrapper* webRequestWrapper) {
-	 if ( requiredParam(webRequestWrapper, levelParam1) == false) return false;
-	 if ( requiredParam(webRequestWrapper, levelParam2) == false) return false;
-	 if ( requiredParam(webRequestWrapper, levelParam3) == false) return false;
-	 if ( requiredParam(webRequestWrapper, levelParam4) == false) return false;
-	return true;
-}
+	bool Pump::validate(iotwebconf::WebRequestWrapper *webRequestWrapper)
+	{
+		if (requiredParam(webRequestWrapper, levelParam1) == false)
+			return false;
+		if (requiredParam(webRequestWrapper, levelParam2) == false)
+			return false;
+		if (requiredParam(webRequestWrapper, levelParam3) == false)
+			return false;
+		if (requiredParam(webRequestWrapper, levelParam4) == false)
+			return false;
+		return true;
+	}
 
-void Pump::setup(IOTServiceInterface* pcb){
-    logd("setup");
-	_pcb = pcb;
+	void Pump::setup(IOTServiceInterface *pcb)
+	{
+		logd("setup");
+		_pcb = pcb;
 
-	Pump_group.addItem(&levelParam1);
-    Pump_group.addItem(&levelParam2);
-    Pump_group.addItem(&levelParam3);
-    Pump_group.addItem(&levelParam4);
+		Pump_group.addItem(&levelParam1);
+		Pump_group.addItem(&levelParam2);
+		Pump_group.addItem(&levelParam3);
+		Pump_group.addItem(&levelParam4);
 
-	pinMode(BUTTON_1, OUTPUT);
-	pinMode(BUTTON_2, OUTPUT);
-	pinMode(BUTTON_3, OUTPUT);
-	pinMode(BUTTON_4, OUTPUT);
-}
+		pinMode(BUTTON_1, OUTPUT);
+		pinMode(BUTTON_2, OUTPUT);
+		pinMode(BUTTON_3, OUTPUT);
+		pinMode(BUTTON_4, OUTPUT);
+	}
 
-void Pump::Process(float waterLevel)
-{
-    boolean s1 = waterLevel > levelParam1.value();
-    boolean s2 = waterLevel > levelParam2.value();
-    boolean s3 = waterLevel > levelParam3.value();
-    boolean s4 = waterLevel > levelParam4.value();
-    
-    digitalWrite(BUTTON_1, s1);
-    digitalWrite(BUTTON_2, s2);
-    digitalWrite(BUTTON_3, s3);
-    digitalWrite(BUTTON_4, s4);
+	void Pump::Process(float waterLevel)
+	{
+		boolean s1 = waterLevel > levelParam1.value();
+		boolean s2 = waterLevel > levelParam2.value();
+		boolean s3 = waterLevel > levelParam3.value();
+		boolean s4 = waterLevel > levelParam4.value();
 
-	logi("Pump 1 is %s", s1 ? "on" : "off");
-    logi("Pump 2 is %s", s2 ? "on" : "off");
-    logi("Pump 3 is %s", s3 ? "on" : "off");
-    logi("Pump 4 is %s", s4 ? "on" : "off");
+		digitalWrite(BUTTON_1, s1);
+		digitalWrite(BUTTON_2, s2);
+		digitalWrite(BUTTON_3, s3);
+		digitalWrite(BUTTON_4, s4);
+	}
 
-    String s;
-    JsonDocument doc;
-    doc.clear();
-    doc["WaterLevel"] = waterLevel;
-    serializeJson(doc, s);
-    _pcb->Publish("stat", s.c_str(), false);
-}
+	void Pump::onMqttConnect(bool sessionPresent)
+	{
+		if (ReadyToPublish())
+		{
+			logd("Publishing discovery ");
+			char buffer[STR_LEN];
+			JsonDocument doc;
+			JsonObject device = doc["device"].to<JsonObject>();
+			device["name"] =_pcb->getTankName();
+			device["sw_version"] = CONFIG_VERSION;
+			device["manufacturer"] = "ClassicDIY";
+			sprintf(buffer, "ESP32-Bit (%X)", _pcb->getUniqueId());
+			device["model"] = buffer;
+			
+			JsonObject origin = doc["origin"].to<JsonObject>();
+			origin["name"] = "Tank";
 
+			JsonArray identifiers = device["identifiers"].to<JsonArray>();
+			sprintf(buffer, "%X", _pcb->getUniqueId());
+			identifiers.add(buffer);
+
+			JsonObject components = doc["components"].to<JsonObject>();
+			JsonObject level = components["level"].to<JsonObject>();
+			level["platform"] = "sensor";
+			level["name"] = "level";
+			level["unit_of_measurement"] = "%";
+			level["value_template"] = "{{ value_json.level }}";
+			level["unique_id"] = "level";
+			level["icon"] = "mdi:hydraulic-oil-level";
+
+			JsonObject pump1 = components["pump1"].to<JsonObject>();
+			pump1["platform"] = "sensor";
+			pump1["name"] = "pump1";
+			pump1["value_template"] = "{{ value_json.pump1 }}";
+			pump1["unique_id"] = "pump1";
+			pump1["icon"] = "mdi:pump";
+
+			JsonObject pump2 = components["pump2"].to<JsonObject>();
+			pump2["platform"] = "sensor";
+			pump2["name"] = "pump2";
+			pump2["value_template"] = "{{ value_json.pump2 }}";
+			pump2["unique_id"] = "pump2";
+			pump2["icon"] = "mdi:pump";
+
+			JsonObject pump3 = components["pump3"].to<JsonObject>();
+			pump3["platform"] = "sensor";
+			pump3["name"] = "pump3";
+			pump3["value_template"] = "{{ value_json.pump3 }}";
+			pump3["unique_id"] = "pump3";
+			pump3["icon"] = "mdi:pump";
+
+			JsonObject pump4 = components["pump4"].to<JsonObject>();
+			pump4["platform"] = "sensor";
+			pump4["name"] = "pump4";
+			pump4["value_template"] = "{{ value_json.pump4 }}";
+			pump4["unique_id"] = "pump4";
+			pump4["icon"] = "mdi:pump";
+
+			sprintf(buffer, "%s/stat/readings", _pcb->getRootTopicPrefix().c_str());
+			doc["state_topic"] = buffer;
+			sprintf(buffer, "%s/tele/LWT", _pcb->getRootTopicPrefix().c_str());
+			doc["availability_topic"] = buffer;
+			doc["pl_avail"] = "Online";
+			doc["pl_not_avail"] = "Offline";
+
+			sprintf(buffer, "%s/device/%X/config", HOME_ASSISTANT_PREFIX, _pcb->getUniqueId());
+			_pcb->PublishMessage(buffer, doc);
+			_discoveryPublished = true;
+		}
+	}
 }

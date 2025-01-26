@@ -65,20 +65,23 @@ void runWaterLevelMonitor()
 		WaterLevel = WaterLevel <= SensorWaterLevelGranularity ? 0 : WaterLevel;
 		_lastWaterLevel = WaterLevel;
 		_pump.Process(WaterLevel);
+
+		String s;
+		JsonDocument doc;
+		doc.clear();
+		doc["level"] = WaterLevel;
+		doc["pump1"] = digitalRead(BUTTON_1) ? "on" : "off";
+		doc["pump2"] = digitalRead(BUTTON_2) ? "on" : "off";
+		doc["pump3"] = digitalRead(BUTTON_3) ? "on" : "off";
+		doc["pump4"] = digitalRead(BUTTON_4) ? "on" : "off";
+		serializeJson(doc, s);
 		if (_wsConnected)
 		{
-			String s;
-			JsonDocument doc;
-			doc.clear();
-			doc["wl"] = WaterLevel;
-			doc["pump1"] = digitalRead(BUTTON_1) ? "on" : "off";
-			doc["pump2"] = digitalRead(BUTTON_2) ? "on" : "off";
-			doc["pump3"] = digitalRead(BUTTON_3) ? "on" : "off";
-			doc["pump4"] = digitalRead(BUTTON_4) ? "on" : "off";
-			serializeJson(doc, s);
 			_webSocket.broadcastTXT(s.c_str(), s.length());
-			logd("Water Level: %f JSON: %s", WaterLevel, s.c_str());
 		}
+		_iot.Publish("readings", s.c_str(), false);
+		_pump.Process(WaterLevel);
+		logd("Water Level: %f JSON: %s", WaterLevel, s.c_str());
 	}
 }
 
