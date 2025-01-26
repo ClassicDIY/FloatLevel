@@ -17,12 +17,12 @@ This project is based on the ESP32, it works with a Submersible Level Sensor 4-2
 
 Device Pin | ESP32 |
 --- | --- |
-FloatLevel red (signal)  | A0 |
-Use 160 Ohm resister from A0 to GND
-FloatLevel black (Gnd) | 24VDC | Gnd |
+FloatLevel red  | 24VDC |
+Use 135Ω (2 X 270Ω in parallel) from A0 to GND
+FloatLevel black | A0 |
 
-<p align="center">
-  <img src="./Pictures/ESP32%20Pinout.PNG" width="800"/>
+<p align="left">
+  <img src="./Pictures/diagram.png" width="800"/>
 </p>
 
 Used the following development tools;
