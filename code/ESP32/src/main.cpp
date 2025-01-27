@@ -8,27 +8,27 @@
 #include <time.h>
 #include <ThreadController.h>
 #include <Thread.h>
+#include "ModbusServerTCPasync.h"
 #include "Log.h"
 #include "IOT.h"
 #include "Sensor.h"
-#include "Pump.h"
+#include "Tank.h"
 
-#define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
+#define WATCHDOG_TIMER 600000 // time in ms to trigger the watchdog
 
 using namespace FloatLevelNS;
 
-Sensor _Sensor(SensorPin);
 WebServer _webServer(80);
 WebSocketsServer _webSocket = WebSocketsServer(81);
 boolean _wsConnected = false;
 ThreadController _controller = ThreadController();
 Thread *_workerThreadWaterLevelMonitor = new Thread();
 IOT _iot = IOT(&_webServer);
-Pump _pump = Pump(22,33);
+Tank* _tank = new Tank();
 
-unsigned long _epoch = 0; //Unix time in seconds
+unsigned long _epoch = 0; // Unix time in seconds
 unsigned long _lastNTP = 0;
-float _lastWaterLevel = 0;
+
 
 hw_timer_t *_watchdogTimer = NULL;
 
@@ -42,10 +42,10 @@ void init_watchdog()
 {
 	if (_watchdogTimer == NULL)
 	{
-		_watchdogTimer = timerBegin(0, 80, true);					   //timer 0, div 80
-		timerAttachInterrupt(_watchdogTimer, &resetModule, true);	  //attach callback
-		timerAlarmWrite(_watchdogTimer, WATCHDOG_TIMER * 1000, false); //set time in us
-		timerAlarmEnable(_watchdogTimer);							   //enable interrupt
+		_watchdogTimer = timerBegin(0, 80, true);					   // timer 0, div 80
+		timerAttachInterrupt(_watchdogTimer, &resetModule, true);	   // attach callback
+		timerAlarmWrite(_watchdogTimer, WATCHDOG_TIMER * 1000, false); // set time in us
+		timerAlarmEnable(_watchdogTimer);							   // enable interrupt
 	}
 }
 
@@ -59,29 +59,10 @@ void feed_watchdog()
 
 void runWaterLevelMonitor()
 {
-	float WaterLevel = _Sensor.WaterLevel();
-	if (abs(_lastWaterLevel - WaterLevel) > SensorWaterLevelGranularity) // limit broadcast to SensorWaterLevelGranularity % change
+	String s = _tank->Process();
+	if (_wsConnected)
 	{
-		WaterLevel = WaterLevel <= SensorWaterLevelGranularity ? 0 : WaterLevel;
-		_lastWaterLevel = WaterLevel;
-		_pump.Process(WaterLevel);
-
-		String s;
-		JsonDocument doc;
-		doc.clear();
-		doc["level"] = WaterLevel;
-		doc["pump1"] = digitalRead(BUTTON_1) ? "on" : "off";
-		doc["pump2"] = digitalRead(BUTTON_2) ? "on" : "off";
-		doc["pump3"] = digitalRead(BUTTON_3) ? "on" : "off";
-		doc["pump4"] = digitalRead(BUTTON_4) ? "on" : "off";
-		serializeJson(doc, s);
-		if (_wsConnected)
-		{
-			_webSocket.broadcastTXT(s.c_str(), s.length());
-		}
-		_iot.Publish("readings", s.c_str(), false);
-		_pump.Process(WaterLevel);
-		logd("Water Level: %f JSON: %s", WaterLevel, s.c_str());
+		_webSocket.broadcastTXT(s.c_str(), s.length());
 	}
 }
 
@@ -98,7 +79,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lenght)
 		IPAddress ip = _webSocket.remoteIP(num);
 		logd("Client #[%u] connected from %d.%d.%d.%d url: %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
 		_wsConnected = true;
-		_lastWaterLevel = 0; //force update
+		_tank->begin();
 	}
 	break;
 	case WStype_ERROR:
@@ -137,6 +118,7 @@ void WiFiEvent(WiFiEvent_t event)
 		_wsConnected = false;
 		_webSocket.begin();
 		_webSocket.onEvent(webSocketEvent);
+		_tank->begin();
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
 		_webSocket.close();
@@ -170,8 +152,8 @@ void setup()
 	_controller.add(_workerThreadWaterLevelMonitor);
 	setupFileSystem();
 	WiFi.onEvent(WiFiEvent);
-	_pump.setup(&_iot);
-	_iot.Init(&_pump);
+	_tank->setup(&_iot);
+	_iot.Init(_tank);
 	init_watchdog();
 	_webServer.on("/", handleRoot);
 	logd("Setup Done");
@@ -185,5 +167,5 @@ void loop()
 		_controller.run();
 		_webSocket.loop();
 	}
-	feed_watchdog(); 
+	feed_watchdog();
 }

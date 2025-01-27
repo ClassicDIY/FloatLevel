@@ -9,6 +9,8 @@ Sensor::Sensor(int sensorPin)
 {
 	_sensorPin = sensorPin;
 	_count = 0;
+	_numberOfSummations = 0;
+	_rollingSum = 0;
 }
 
 Sensor::~Sensor()
@@ -18,16 +20,10 @@ Sensor::~Sensor()
 // WWater level in 0 -> 100% range
 float Sensor::WaterLevel()
 {
-	float rVal = 0;
+	float rVal = 1;
 	// Get the mv value from the analog pin connected to the Sensor
 	double sensorVoltage = analogReadMilliVolts(_sensorPin);
-	#ifdef LOG_SENSOR_VOLTAGE
-	if (_count++ > 100)
-	{
-		logd("Sensor voltage: %f", sensorVoltage);
-		_count = 0;
-	}
-	#endif
+
 	// Convert voltage value to a % level using range of max and min voltages and level for the Sensor
 	if (sensorVoltage > SensorVoltageMin)
 	{
@@ -36,6 +32,14 @@ float Sensor::WaterLevel()
 	}
 	float ws = AddReading(rVal);
 	ws = roundf(ws  * 10); // round to 1 decimal place
+
+	#ifdef LOG_SENSOR_VOLTAGE
+	if (_count++ > 100)
+	{
+		logd("Sensor voltage: %f, WaterLevel: %f, rVal:%f", sensorVoltage, ws / 10, rVal);
+		_count = 0;
+	}
+	#endif
 	return ws / 10;
 }
 
