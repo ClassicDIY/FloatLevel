@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "ModbusServerTCPasync.h"
+#include "IotWebConfOptionalGroup.h"
+#include <IotWebConfTParameter.h>
 #include "Log.h"
 #include "HelperFunctions.h"
 #include "Defines.h"
@@ -12,6 +14,10 @@ namespace FloatLevelNS
 	iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Level 2").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
 	iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Level 3").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
 	iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Level 4").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
+
+	iotwebconf::OptionalParameterGroup Modbus_group = iotwebconf::OptionalParameterGroup("modbus", "Modbus", true);
+	iotwebconf::IntTParameter<int16_t> modbusPort = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("modbusPort").label("Modbus Port").defaultValue(502).build();
+	iotwebconf::IntTParameter<int16_t> modbusID = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("modbusID").label("Modbus ID").defaultValue(1).min(0).max(247).step(1).placeholder("1..10").build();
 
 	Tank::Tank() : MBserver() 
 	{
@@ -27,7 +33,13 @@ namespace FloatLevelNS
 		s += htmlConfigEntry<int16_t>(levelParam3.label, levelParam3.value());
 		s += htmlConfigEntry<int16_t>(levelParam4.label, levelParam4.value());
 		s += "</ul>";
-		;
+
+		s += "Modbus:";
+		s += "<ul>";
+		s += htmlConfigEntry<int16_t>(modbusPort.label, modbusPort.value());
+		s += htmlConfigEntry<int16_t>(modbusID.label, modbusID.value());
+		s += "</ul>";
+
 		return s;
 	}
 
@@ -57,6 +69,11 @@ namespace FloatLevelNS
 		Pump_group.addItem(&levelParam2);
 		Pump_group.addItem(&levelParam3);
 		Pump_group.addItem(&levelParam4);
+
+		Modbus_group.addItem(&modbusPort);
+		Modbus_group.addItem(&modbusID);
+
+		Pump_group.addItem(&Modbus_group);
 
 		pinMode(PUMP_1, OUTPUT);
 		pinMode(PUMP_2, OUTPUT);
@@ -215,7 +232,7 @@ namespace FloatLevelNS
 			doc["pl_not_avail"] = "Offline";
 
 			sprintf(buffer, "%s/device/%X/config", HOME_ASSISTANT_PREFIX, _iot->getUniqueId());
-			_iot->PublishMessage(buffer, doc);
+			_iot->PublishMessage(buffer, doc, true);
 			_discoveryPublished = true;
 		}
 	}

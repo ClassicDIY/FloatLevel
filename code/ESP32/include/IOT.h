@@ -28,7 +28,7 @@ public:
     boolean Run();
     boolean Publish(const char *subtopic, const char *value, boolean retained = false);
     boolean Publish(const char *subtopic, float value, boolean retained = false);
-    boolean PublishMessage(const char* topic, JsonDocument& payload);
+    boolean PublishMessage(const char* topic, JsonDocument& payload, boolean retained);
     std::string getRootTopicPrefix();
     std::string getTankName();
     u_int getUniqueId() { return _uniqueId;};

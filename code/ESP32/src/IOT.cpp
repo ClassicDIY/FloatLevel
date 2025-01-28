@@ -167,9 +167,8 @@ namespace FloatLevelNS
 		MQTT_group.addItem(&mqttUserPasswordParam);
 		MQTT_group.addItem(&mqttTankNameParam);
 		_iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
-
+		_iotWebConf.addSystemParameter(&MQTT_group);
 		_iotWebConf.addParameterGroup(_iotCB->parameterGroup());
-		_iotWebConf.addParameterGroup(&MQTT_group);
 
 		// setup callbacks for IotWebConf
 		_iotWebConf.setConfigSavedCallback(&configSaved);
@@ -315,14 +314,14 @@ namespace FloatLevelNS
 		return Publish(topic, buf, retained);
 	}
 
-	boolean IOT::PublishMessage(const char *topic, JsonDocument &payload)
+	boolean IOT::PublishMessage(const char *topic, JsonDocument &payload, boolean retained)
 	{
 		boolean rVal = false;
 		if (_mqttClient.connected())
 		{
 			String s;
 			serializeJson(payload, s);
-			rVal = _mqttClient.publish(topic, 0, false, s.c_str(), s.length()) > 0;
+			rVal = _mqttClient.publish(topic, 0, retained, s.c_str(), s.length()) > 0;
 			if (!rVal)
 			{
 				loge("**** Configuration payload exceeds MAX MQTT Packet Size, %d [%s] topic: %s", s.length(), s.c_str(), topic);

@@ -9,7 +9,7 @@ public:
 
     virtual boolean Publish(const char *subtopic, const char *value, boolean retained) = 0;
     virtual boolean Publish(const char *subtopic, float value, boolean retained) = 0;
-    virtual boolean PublishMessage(const char* topic, JsonDocument& payload) = 0;
+    virtual boolean PublishMessage(const char* topic, JsonDocument& payload, boolean retained) = 0;
     virtual std::string getRootTopicPrefix() = 0;
     virtual std::string getTankName() = 0;
     virtual u_int getUniqueId() = 0;
