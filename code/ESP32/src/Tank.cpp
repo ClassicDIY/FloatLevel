@@ -2,6 +2,7 @@
 #include "ModbusServerTCPasync.h"
 #include "IotWebConfOptionalGroup.h"
 #include <IotWebConfTParameter.h>
+#include "CoilData.h"
 #include "Log.h"
 #include "HelperFunctions.h"
 #include "Defines.h"
@@ -81,47 +82,53 @@ namespace FloatLevelNS
 		pinMode(PUMP_4, OUTPUT);
 
 
-		auto modbusLambda = [this](ModbusMessage request) -> ModbusMessage{
-			logd("FC03 %d", request.getFunctionCode());
-
-			ModbusMessage response; // The Modbus message we are going to give back
-			uint16_t addr = 0;		// Start address
-			uint16_t words = 0;		// # of words requested
-			request.get(2, addr);	// read address from request
-			request.get(4, words);	// read # of words from request
-
-			// Address overflow?
+		auto modbusFC03 = [this](ModbusMessage request) -> ModbusMessage{
+			
+			ModbusMessage response; 
+			uint16_t addr = 0;		
+			uint16_t words = 0;		
+			request.get(2, addr);	
+			request.get(4, words);	
+			logd("READ_HOLD_REGISTER %d %d[%d]", request.getFunctionCode(), addr, words);
 			if ((addr + words) > 5)
 			{
-				// Yes - send respective error response
+				logw("READ_HOLD_REGISTER error: %d", (addr + words));
 				response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_ADDRESS);
 			}
-
-			uint16_t ioValues[5];
 			float WaterLevel = _Sensor.WaterLevel();
-			ioValues[0] = (uint16_t)(WaterLevel * 10);
-			ioValues[1] = digitalRead(PUMP_1);
-			ioValues[2] = digitalRead(PUMP_2);
-			ioValues[3] = digitalRead(PUMP_3);
-			ioValues[4] = digitalRead(PUMP_4);
-
-			// Set up response
 			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)(words * 2));
-			// Request for FC 0x03?
-			if (request.getFunctionCode() == READ_HOLD_REGISTER)
-			{
-				// Yes. Complete response
-				for (uint8_t i = 0; i < words; ++i)
-				{
-					// send increasing data values
-					response.add(ioValues[addr + i]);
-				}
-			}
+			response.add(WaterLevel);
+			// response.add((uint16_t)digitalRead(PUMP_1));
+			// response.add((uint16_t)digitalRead(PUMP_2));
+			// response.add((uint16_t)digitalRead(PUMP_3));
+			// response.add((uint16_t)digitalRead(PUMP_4));
 			return response;
 		};
 
-		MBserver.registerWorker(1, READ_HOLD_REGISTER, modbusLambda);
+		auto modbusFC01 = [this](ModbusMessage request) -> ModbusMessage{
 
+			ModbusMessage response; // The Modbus message we are going to give back
+			uint16_t start = 0;
+			uint16_t numCoils = 0;
+			request.get(2, start, numCoils);
+			logd("READ_COIL %d %d[%d]", request.getFunctionCode(), start, numCoils);
+			// Address overflow?
+			if ((start + numCoils) > 4)
+			{
+				logw("READ_COIL error: %d", (start + numCoils));
+				response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_ADDRESS);
+			}
+			CoilData myCoils(4);
+  			myCoils.set(0, digitalRead(PUMP_1));
+  			myCoils.set(1, digitalRead(PUMP_2));
+			myCoils.set(2, digitalRead(PUMP_3));
+			myCoils.set(3, digitalRead(PUMP_4));
+			vector<uint8_t> coilset = myCoils.slice(start, numCoils);
+			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)coilset.size(), coilset);
+			return response;
+		};
+		MBserver.registerWorker(1, READ_HOLD_REGISTER, modbusFC03);
+		MBserver.registerWorker(1, READ_COIL, modbusFC01);
 	}
 
 	void Tank::begin()
