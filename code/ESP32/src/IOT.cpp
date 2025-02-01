@@ -14,7 +14,7 @@ namespace FloatLevelNS
 	DNSServer _dnsServer;
 	WebServer *_pWebServer;
 	HTTPUpdateServer _httpUpdater;
-	IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, TAG, CONFIG_VERSION);
+	IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, "12345678", CONFIG_VERSION);
 	char _willTopic[STR_LEN];
 	char _rootTopicPrefix[64];
 	iotwebconf::OptionalParameterGroup MQTT_group = iotwebconf::OptionalParameterGroup("MQTT", "MQTT", false);
@@ -27,7 +27,10 @@ namespace FloatLevelNS
 
 	void onMqttConnect(bool sessionPresent)
 	{
-		logd("Connected to MQTT. Session present: %d", sessionPresent);
+		logi("Connected to MQTT. Session present: %d", sessionPresent);
+		char buf[64];
+		sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
+		_mqttClient.subscribe(buf, 0);
 		_mqttClient.publish(_willTopic, 0, false, "Online");
 		_iot.IOTCB()->onMqttConnect(sessionPresent);
 	}
@@ -47,7 +50,7 @@ namespace FloatLevelNS
 		{
 			if (MQTT_group.isActive() && strlen(mqttServerParam.value()) > 0) // mqtt configured
 			{
-				logi("Connecting to MQTT...");
+				logd("Connecting to MQTT...");
 				int len = strlen(_iotWebConf.getThingName());
 				strncpy(_rootTopicPrefix, _iotWebConf.getThingName(), len);
 				if (_rootTopicPrefix[len - 1] != '/')
@@ -100,6 +103,25 @@ namespace FloatLevelNS
 	{
 		logd("MQTT Message arrived [%s]  qos: %d len: %d index: %d total: %d", topic, properties.qos, len, index, total);
 		printHexString(payload, len);
+		JsonDocument doc;
+		DeserializationError err = deserializeJson(doc, payload);
+		if (err) // not json!
+		{
+			logd("MQTT payload {%s} is not valid JSON!", payload);
+		}
+		else
+		{
+			if (doc.containsKey("info"))
+			{
+				doc.clear();
+				JsonObject device = doc["device"].to<JsonObject>();
+				device["name"] = mqttTankNameParam.value();
+				device["sw_version"] = CONFIG_VERSION;
+				char buf[64];
+				sprintf(buf, "%s/info", _rootTopicPrefix);
+				_iot.PublishMessage(buf, doc, true);
+			}
+		}
 	}
 
 	IOT::IOT(WebServer *pWebServer)
@@ -158,7 +180,6 @@ namespace FloatLevelNS
 		_iotCB = iotCB;
 		pinMode(FACTORY_RESET_PIN, INPUT_PULLUP);
 		_iotWebConf.setStatusPin(WIFI_STATUS_PIN);
-		_iotWebConf.setConfigPin(WIFI_AP_PIN);
 
 		// setup EEPROM parameters
 		MQTT_group.addItem(&mqttServerParam);
@@ -169,6 +190,7 @@ namespace FloatLevelNS
 		_iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
 		_iotWebConf.addSystemParameter(&MQTT_group);
 		_iotWebConf.addParameterGroup(_iotCB->parameterGroup());
+		_iotWebConf.getApTimeoutParameter()->visible = true;
 
 		// setup callbacks for IotWebConf
 		_iotWebConf.setConfigSavedCallback(&configSaved);
@@ -206,7 +228,7 @@ namespace FloatLevelNS
 		}
 		else
 		{
-			_iotWebConf.skipApStartup();			// Set WIFI_AP_PIN to gnd to force AP mode
+			logi("wait in AP mode for %d seconds", _iotWebConf.getApTimeoutMs() / 1000);
 			if (mqttServerParam.value()[0] != '\0') // skip if factory reset
 			{
 				logd("Valid configuration!");

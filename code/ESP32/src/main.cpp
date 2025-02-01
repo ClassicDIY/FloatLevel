@@ -133,7 +133,7 @@ void handleRoot()
 	File f = SPIFFS.open("/index.htm", "r");
 	if (!f)
 	{
-		logw("index.htm not uploaded to device");
+		logw("***********index.htm not uploaded to device, use PlatformIO -> Upload Filesystem Image***********");
 		return;
 	}
 	_webServer.streamFile(f, "text/html");
