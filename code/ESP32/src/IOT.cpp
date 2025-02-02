@@ -15,6 +15,7 @@ namespace FloatLevelNS
 	WebServer *_pWebServer;
 	HTTPUpdateServer _httpUpdater;
 	IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, "12345678", CONFIG_VERSION);
+	unsigned long _lastBootTimeStamp = millis();
 	char _willTopic[STR_LEN];
 	char _rootTopicPrefix[64];
 	iotwebconf::OptionalParameterGroup MQTT_group = iotwebconf::OptionalParameterGroup("MQTT", "MQTT", false);
@@ -31,8 +32,8 @@ namespace FloatLevelNS
 		char buf[64];
 		sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 		_mqttClient.subscribe(buf, 0);
-		_mqttClient.publish(_willTopic, 0, false, "Online");
 		_iot.IOTCB()->onMqttConnect(sessionPresent);
+		_mqttClient.publish(_willTopic, 0, false, "Offline"); // toggle online in run loop
 	}
 
 	void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -60,7 +61,7 @@ namespace FloatLevelNS
 				strcat(_rootTopicPrefix, mqttTankNameParam.value());
 
 				sprintf(_willTopic, "%s/tele/LWT", _rootTopicPrefix);
-				_mqttClient.setWill(_willTopic, 0, true, "Offline");
+				_mqttClient.setWill(_willTopic, 0, false, "Offline");
 				_mqttClient.connect();
 				logd("rootTopicPrefix: %s", _rootTopicPrefix);
 			}
@@ -111,15 +112,15 @@ namespace FloatLevelNS
 		}
 		else
 		{
-			if (doc.containsKey("info"))
+			if (doc.containsKey("status"))
 			{
 				doc.clear();
-				JsonObject device = doc["device"].to<JsonObject>();
-				device["name"] = mqttTankNameParam.value();
-				device["sw_version"] = CONFIG_VERSION;
-				char buf[64];
-				sprintf(buf, "%s/info", _rootTopicPrefix);
-				_iot.PublishMessage(buf, doc, true);
+				doc["name"] = mqttTankNameParam.value();
+				doc["sw_version"] = CONFIG_VERSION;
+				doc["IP"] = WiFi.localIP().toString().c_str();
+				doc["SSID"] = WiFi.SSID();
+				doc["uptime"] = formatDuration(millis() - _lastBootTimeStamp);
+				_iot.Publish("status", doc, true);
 			}
 		}
 	}
@@ -129,10 +130,7 @@ namespace FloatLevelNS
 		_pWebServer = pWebServer;
 	}
 
-	/**
-	 * Handle web requests to "/settings" path.
-	 */
-	void handleSettings()
+	void getSettingsHTML()
 	{
 		if (_iotWebConf.handleCaptivePortal()) // -- Let IotWebConf test and handle captive portal requests.
 		{
@@ -147,7 +145,7 @@ namespace FloatLevelNS
 		s += "<h2>";
 		s += _iotWebConf.getThingName();
 		s += " Settings</h2><hr><p>";
-		s += _iot.IOTCB()->getRootHTML();
+		s += _iot.IOTCB()->getSettingsHTML();
 		s += "</p>";
 		s += "MQTT:";
 		s += "<ul>";
@@ -257,8 +255,8 @@ namespace FloatLevelNS
 		_uniqueId += chipid[4] << 8;
 		_uniqueId += chipid[5];
 		// Set up required URL handlers on the web server.
-		_pWebServer->on("/settings", handleSettings);
-		_pWebServer->on("/config", []
+		_pWebServer->on("/settings", getSettingsHTML);
+		_pWebServer->on("/config", []()
 						{ _iotWebConf.handleConfig(); });
 		_pWebServer->onNotFound([]()
 								{ _iotWebConf.handleNotFound(); });
@@ -313,6 +311,13 @@ namespace FloatLevelNS
 		return rVal;
 	}
 
+	boolean IOT::Publish(const char *subtopic, JsonDocument &payload, boolean retained)
+	{
+		String s;
+		serializeJson(payload, s);
+		return Publish(subtopic, s.c_str(), retained);
+	}
+
 	boolean IOT::Publish(const char *subtopic, const char *value, boolean retained)
 	{
 		boolean rVal = false;
@@ -352,6 +357,18 @@ namespace FloatLevelNS
 		return rVal;
 	}
 
+	boolean IOT::PublishHADiscovery(JsonDocument &payload)
+	{
+		boolean rVal = false;
+		if (_mqttClient.connected())
+		{
+			char topic[64];
+			sprintf(topic, "%s/device/%X/config", HOME_ASSISTANT_PREFIX, getUniqueId());
+			rVal = PublishMessage(topic, payload, true);
+		}
+		return rVal;
+	}
+
 	std::string IOT::getRootTopicPrefix()
 	{
 		std::string s(_rootTopicPrefix);
@@ -368,6 +385,14 @@ namespace FloatLevelNS
 	{
 		std::string s(_iotWebConf.getThingName());
 		return s;
+	}
+
+	void IOT::Online()
+	{
+		if (!_publishedOnline)
+		{
+			_publishedOnline = _mqttClient.publish(_willTopic, 0, false, "Online");
+		}
 	}
 
 } // namespace SkyeTracker

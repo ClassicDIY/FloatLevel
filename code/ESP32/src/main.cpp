@@ -26,10 +26,6 @@ Thread *_workerThreadWaterLevelMonitor = new Thread();
 IOT _iot = IOT(&_webServer);
 Tank* _tank = new Tank();
 
-unsigned long _epoch = 0; // Unix time in seconds
-unsigned long _lastNTP = 0;
-
-
 hw_timer_t *_watchdogTimer = NULL;
 
 void IRAM_ATTR resetModule()

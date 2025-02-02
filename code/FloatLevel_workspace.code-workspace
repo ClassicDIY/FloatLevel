@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "ESP32"
+		},
+		{
+			"path": "node-red"
 		}
 	],
 	"settings": {

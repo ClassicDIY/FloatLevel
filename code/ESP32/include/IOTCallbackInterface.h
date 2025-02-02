@@ -7,7 +7,7 @@
 class IOTCallbackInterface
 {
 public:
-    virtual String getRootHTML() = 0;
+    virtual String getSettingsHTML() = 0;
     virtual iotwebconf::ParameterGroup* parameterGroup() = 0;
     virtual bool validate(iotwebconf::WebRequestWrapper* webRequestWrapper) = 0;
     virtual void onMqttConnect(bool sessionPresent) = 0;

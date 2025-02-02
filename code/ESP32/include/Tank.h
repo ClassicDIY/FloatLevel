@@ -17,7 +17,7 @@ namespace FloatLevelNS
 		void begin();
 		String Process();
 		//IOTCallbackInterface 
-		String getRootHTML() ;
+		String getSettingsHTML() ;
 		iotwebconf::ParameterGroup* parameterGroup() ;
 		bool validate(iotwebconf::WebRequestWrapper* webRequestWrapper);
 		void onMqttConnect(bool sessionPresent);

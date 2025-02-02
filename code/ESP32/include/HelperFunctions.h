@@ -14,6 +14,28 @@ boolean inline requiredParam(iotwebconf::WebRequestWrapper* webRequestWrapper, i
 	return valid;
 }
 
+std::string inline formatDuration(unsigned long milliseconds) {
+    const unsigned long MS_PER_SECOND = 1000;
+    const unsigned long MS_PER_MINUTE = MS_PER_SECOND * 60;
+    const unsigned long MS_PER_HOUR = MS_PER_MINUTE * 60;
+    const unsigned long MS_PER_DAY = MS_PER_HOUR * 24;
+
+    unsigned long days = milliseconds / MS_PER_DAY;
+    milliseconds %= MS_PER_DAY;
+    unsigned long hours = milliseconds / MS_PER_HOUR;
+    milliseconds %= MS_PER_HOUR;
+    unsigned long minutes = milliseconds / MS_PER_MINUTE;
+    milliseconds %= MS_PER_MINUTE;
+    unsigned long seconds = milliseconds / MS_PER_SECOND;
+
+    std::string result = std::to_string(days) + " days, " +
+                         std::to_string(hours) + " hours, " +
+                         std::to_string(minutes) + " minutes, " +
+                         std::to_string(seconds) + " seconds";
+
+    return result;
+}
+
 unsigned long inline getTime() {
 	time_t now;
 	struct tm timeinfo;

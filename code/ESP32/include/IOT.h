@@ -27,17 +27,21 @@ public:
 
     boolean Run();
     boolean Publish(const char *subtopic, const char *value, boolean retained = false);
+    boolean Publish(const char *subtopic, JsonDocument &payload, boolean retained = false);
     boolean Publish(const char *subtopic, float value, boolean retained = false);
     boolean PublishMessage(const char* topic, JsonDocument& payload, boolean retained);
+    boolean PublishHADiscovery(JsonDocument& payload);
     std::string getRootTopicPrefix();
     std::string getTankName();
     u_int getUniqueId() { return _uniqueId;};
     std::string getThingName();
+    void Online();
     IOTCallbackInterface* IOTCB() { return _iotCB;}
 private:
     bool _clientsConfigured = false;
     IOTCallbackInterface* _iotCB;
     u_int _uniqueId = 0; // unique id from mac address NIC segment
+    bool _publishedOnline = false;
 };
 } // namespace FloatLevelNS
 

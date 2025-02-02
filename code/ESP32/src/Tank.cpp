@@ -24,7 +24,7 @@ namespace FloatLevelNS
 	{
 	}
 
-	String Tank::getRootHTML()
+	String Tank::getSettingsHTML()
 	{
 		String s;
 		s += "Tank:";
@@ -70,17 +70,13 @@ namespace FloatLevelNS
 		Pump_group.addItem(&levelParam2);
 		Pump_group.addItem(&levelParam3);
 		Pump_group.addItem(&levelParam4);
-
 		Modbus_group.addItem(&modbusPort);
 		Modbus_group.addItem(&modbusID);
-
 		Pump_group.addItem(&Modbus_group);
-
 		pinMode(PUMP_1, OUTPUT);
 		pinMode(PUMP_2, OUTPUT);
 		pinMode(PUMP_3, OUTPUT);
 		pinMode(PUMP_4, OUTPUT);
-
 
 		auto modbusFC03 = [this](ModbusMessage request) -> ModbusMessage{
 			
@@ -166,6 +162,7 @@ namespace FloatLevelNS
 			doc["pump3"] = digitalRead(PUMP_3) ? "on" : "off";
 			doc["pump4"] = digitalRead(PUMP_4) ? "on" : "off";
 			serializeJson(doc, s);
+			_iot->Online();
 			_iot->Publish("readings", s.c_str(), false);
 
 			logd("Water Level: %f JSON: %s", waterLevel, s.c_str());
@@ -238,8 +235,7 @@ namespace FloatLevelNS
 			doc["pl_avail"] = "Online";
 			doc["pl_not_avail"] = "Offline";
 
-			sprintf(buffer, "%s/device/%X/config", HOME_ASSISTANT_PREFIX, _iot->getUniqueId());
-			_iot->PublishMessage(buffer, doc, true);
+			_iot->PublishHADiscovery(doc);
 			_discoveryPublished = true;
 		}
 	}
