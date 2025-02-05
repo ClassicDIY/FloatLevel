@@ -1,6 +1,9 @@
 #pragma once
 
+#include <Arduino.h>
 #include "esp_log.h"
+#include <time.h>
+
 #define TAG "FloatLevel"
 
 void inline printHexString(char* ptr, int len)

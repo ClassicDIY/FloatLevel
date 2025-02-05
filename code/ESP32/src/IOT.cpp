@@ -14,7 +14,7 @@ namespace FloatLevelNS
 	DNSServer _dnsServer;
 	WebServer *_pWebServer;
 	HTTPUpdateServer _httpUpdater;
-	IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, "12345678", CONFIG_VERSION);
+	IotWebConf _iotWebConf(TAG, &_dnsServer, _pWebServer, DEFAULT_AP_PASSWORD, CONFIG_VERSION);
 	unsigned long _lastBootTimeStamp = millis();
 	char _willTopic[STR_LEN];
 	char _rootTopicPrefix[64];
@@ -78,7 +78,7 @@ namespace FloatLevelNS
 		case SYSTEM_EVENT_STA_GOT_IP:
 			// logd("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
 			doc["IP"] = WiFi.localIP().toString().c_str();
-			doc["ApPassword"] = TAG;
+			doc["ApPassword"] = DEFAULT_AP_PASSWORD;
 			serializeJson(doc, s);
 			s += '\n';
 			Serial.printf(s.c_str()); // send json to flash tool
@@ -293,7 +293,7 @@ namespace FloatLevelNS
 						strcpy(p->valueBuffer, doc["password"]);
 						logd("Setting password: %s", p->valueBuffer);
 						p = _iotWebConf.getApPasswordParameter();
-						strcpy(p->valueBuffer, TAG); // reset to default AP password
+						strcpy(p->valueBuffer, DEFAULT_AP_PASSWORD); // reset to default AP password
 						_iotWebConf.saveConfig();
 						esp_restart();
 					}

@@ -6,6 +6,7 @@
 #define NUMBER_CONFIG_LEN 6
 #define LEVEL_CONFIG_LEN 2
 #define AP_TIMEOUT 30000
+#define DEFAULT_AP_PASSWORD "12345678"
 
 #define CheckBit(var,pos) ((var) & (1<<(pos))) ? true : false
 #define toShort(i, v) (v[i++]<<8) | v[i++]
