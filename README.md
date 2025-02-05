@@ -35,6 +35,6 @@ Used the following development tools;
 <ul>
   <li>Visual Studio Code with the PlatformIO extension.</li>
   <li>***** Don't forget to upload the index.htm file for the initial setup of the ESP32, Run 'Upload File System Image' platformio command</li>
-  <li>Setup WIFI configuration by logging onto the "FloatLevel" Access Point, use "FloatLevel" as the AP password. Browse 192.168.4.1 and go to Configuration Page to provide your WIFI credentials.
+  <li>Setup WIFI configuration by logging onto the "FloatLevel" Access Point, use the admin default pw: 12345678 as the AP password. Browse 192.168.4.1 and go to Configuration Page to provide your WIFI credentials.
 </ul>
 
