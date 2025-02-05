@@ -197,35 +197,40 @@ namespace FloatLevelNS
 			level["name"] = "level";
 			level["unit_of_measurement"] = "%";
 			level["value_template"] = "{{ value_json.level }}";
-			level["unique_id"] = "level";
+			sprintf(buffer, "%X_level",  _iot->getUniqueId());
+			level["unique_id"] = buffer;
 			level["icon"] = "mdi:hydraulic-oil-level";
 
 			JsonObject pump1 = components["pump1"].to<JsonObject>();
 			pump1["platform"] = "sensor";
 			pump1["name"] = "pump1";
 			pump1["value_template"] = "{{ value_json.pump1 }}";
-			pump1["unique_id"] = "pump1";
+			sprintf(buffer, "%X_pump1",  _iot->getUniqueId());
+			pump1["unique_id"] = buffer;
 			pump1["icon"] = "mdi:pump";
 
 			JsonObject pump2 = components["pump2"].to<JsonObject>();
 			pump2["platform"] = "sensor";
 			pump2["name"] = "pump2";
 			pump2["value_template"] = "{{ value_json.pump2 }}";
-			pump2["unique_id"] = "pump2";
+			sprintf(buffer, "%X_pump2",  _iot->getUniqueId());
+			pump2["unique_id"] = buffer;
 			pump2["icon"] = "mdi:pump";
 
 			JsonObject pump3 = components["pump3"].to<JsonObject>();
 			pump3["platform"] = "sensor";
 			pump3["name"] = "pump3";
 			pump3["value_template"] = "{{ value_json.pump3 }}";
-			pump3["unique_id"] = "pump3";
+			sprintf(buffer, "%X_pump3",  _iot->getUniqueId());
+			pump3["unique_id"] = buffer;
 			pump3["icon"] = "mdi:pump";
 
 			JsonObject pump4 = components["pump4"].to<JsonObject>();
 			pump4["platform"] = "sensor";
 			pump4["name"] = "pump4";
 			pump4["value_template"] = "{{ value_json.pump4 }}";
-			pump4["unique_id"] = "pump4";
+			sprintf(buffer, "%X_pump4",  _iot->getUniqueId());
+			pump4["unique_id"] = buffer;
 			pump4["icon"] = "mdi:pump";
 
 			sprintf(buffer, "%s/stat/readings", _iot->getRootTopicPrefix().c_str());
