@@ -32,7 +32,7 @@ public:
     boolean PublishMessage(const char* topic, JsonDocument& payload, boolean retained);
     boolean PublishHADiscovery(JsonDocument& payload);
     std::string getRootTopicPrefix();
-    std::string getTankName();
+    std::string getSubtopicName();
     u_int getUniqueId() { return _uniqueId;};
     std::string getThingName();
     void Online();

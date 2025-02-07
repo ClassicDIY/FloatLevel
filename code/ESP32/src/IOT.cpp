@@ -33,7 +33,7 @@ namespace FloatLevelNS
 		sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 		_mqttClient.subscribe(buf, 0);
 		_iot.IOTCB()->onMqttConnect(sessionPresent);
-		_mqttClient.publish(_willTopic, 0, false, "Offline"); // toggle online in run loop
+		_mqttClient.publish(_willTopic, 0, true, "Offline"); // toggle online in run loop
 	}
 
 	void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -61,7 +61,7 @@ namespace FloatLevelNS
 				strcat(_rootTopicPrefix, mqttTankNameParam.value());
 
 				sprintf(_willTopic, "%s/tele/LWT", _rootTopicPrefix);
-				_mqttClient.setWill(_willTopic, 0, false, "Offline");
+				_mqttClient.setWill(_willTopic, 0, true, "Offline");
 				_mqttClient.connect();
 				logd("rootTopicPrefix: %s", _rootTopicPrefix);
 			}
@@ -217,12 +217,8 @@ namespace FloatLevelNS
 		if (!validConfig)
 		{
 			logw("!invalid configuration!");
-			mqttServerParam.applyDefaultValue();
-			mqttPortParam.applyDefaultValue();
-			mqttUserNameParam.applyDefaultValue();
-			mqttUserPasswordParam.applyDefaultValue();
-			mqttTankNameParam.applyDefaultValue();
 			_iotWebConf.resetWifiAuthInfo();
+			_iotWebConf.getRootParameterGroup()->applyDefaultValue();
 		}
 		else
 		{
@@ -375,7 +371,7 @@ namespace FloatLevelNS
 		return s;
 	};
 
-	std::string IOT::getTankName()
+	std::string IOT::getSubtopicName()
 	{
 		std::string s(mqttTankNameParam.value());
 		return s;
@@ -391,7 +387,7 @@ namespace FloatLevelNS
 	{
 		if (!_publishedOnline)
 		{
-			_publishedOnline = _mqttClient.publish(_willTopic, 0, false, "Online");
+			_publishedOnline = _mqttClient.publish(_willTopic, 0, true, "Online");
 		}
 	}
 

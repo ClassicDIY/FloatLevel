@@ -62,7 +62,7 @@ void runWaterLevelMonitor()
 	}
 }
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lenght)
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 {
 	switch (type)
 	{

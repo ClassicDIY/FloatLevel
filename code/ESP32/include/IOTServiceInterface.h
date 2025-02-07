@@ -12,7 +12,7 @@ public:
     virtual boolean PublishMessage(const char* topic, JsonDocument& payload, boolean retained) = 0;
     virtual boolean PublishHADiscovery(JsonDocument& payload) = 0;
     virtual std::string getRootTopicPrefix() = 0;
-    virtual std::string getTankName() = 0;
+    virtual std::string getSubtopicName() = 0;
     virtual u_int getUniqueId() = 0;
     virtual std::string getThingName() = 0;
     virtual void Online() = 0;

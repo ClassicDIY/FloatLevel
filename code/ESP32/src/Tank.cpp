@@ -78,6 +78,16 @@ namespace FloatLevelNS
 		pinMode(PUMP_3, OUTPUT);
 		pinMode(PUMP_4, OUTPUT);
 
+	}
+
+	void Tank::begin()
+	{
+		_lastWaterLevel = 0;
+		if (!MBserver.isRunning())
+		{
+			MBserver.start(modbusPort.value(), 5, 0); // listen for modbus requests
+		}
+		
 		auto modbusFC03 = [this](ModbusMessage request) -> ModbusMessage{
 			
 			ModbusMessage response; 
@@ -94,10 +104,6 @@ namespace FloatLevelNS
 			float WaterLevel = _Sensor.WaterLevel();
 			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)(words * 2));
 			response.add(WaterLevel);
-			// response.add((uint16_t)digitalRead(PUMP_1));
-			// response.add((uint16_t)digitalRead(PUMP_2));
-			// response.add((uint16_t)digitalRead(PUMP_3));
-			// response.add((uint16_t)digitalRead(PUMP_4));
 			return response;
 		};
 
@@ -123,17 +129,8 @@ namespace FloatLevelNS
 			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)coilset.size(), coilset);
 			return response;
 		};
-		MBserver.registerWorker(1, READ_HOLD_REGISTER, modbusFC03);
-		MBserver.registerWorker(1, READ_COIL, modbusFC01);
-	}
-
-	void Tank::begin()
-	{
-		_lastWaterLevel = 0;
-		if (!MBserver.isRunning())
-		{
-			MBserver.start(502, 5, 0); // listen for modbus requests
-		}
+		MBserver.registerWorker(modbusID.value(), READ_HOLD_REGISTER, modbusFC03);
+		MBserver.registerWorker(modbusID.value(), READ_COIL, modbusFC01);
 	}
 
 	String Tank::Process()
@@ -178,14 +175,14 @@ namespace FloatLevelNS
 			char buffer[STR_LEN];
 			JsonDocument doc;
 			JsonObject device = doc["device"].to<JsonObject>();
-			device["name"] = _iot->getTankName();
+			device["name"] = _iot->getSubtopicName();
 			device["sw_version"] = CONFIG_VERSION;
 			device["manufacturer"] = "ClassicDIY";
 			sprintf(buffer, "ESP32-Bit (%X)", _iot->getUniqueId());
 			device["model"] = buffer;
 
 			JsonObject origin = doc["origin"].to<JsonObject>();
-			origin["name"] = "Tank";
+			origin["name"] = TAG;
 
 			JsonArray identifiers = device["identifiers"].to<JsonArray>();
 			sprintf(buffer, "%X", _iot->getUniqueId());
