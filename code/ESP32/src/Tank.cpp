@@ -88,25 +88,26 @@ namespace FloatLevelNS
 			MBserver.start(modbusPort.value(), 5, 0); // listen for modbus requests
 		}
 		
-		auto modbusFC03 = [this](ModbusMessage request) -> ModbusMessage{
+		// READ_INPUT_REGISTER
+		auto modbusFC04 = [this](ModbusMessage request) -> ModbusMessage{
 			
 			ModbusMessage response; 
 			uint16_t addr = 0;		
 			uint16_t words = 0;		
 			request.get(2, addr);	
 			request.get(4, words);	
-			logd("READ_HOLD_REGISTER %d %d[%d]", request.getFunctionCode(), addr, words);
+			logd("READ_INPUT_REGISTER %d %d[%d]", request.getFunctionCode(), addr, words);
 			if ((addr + words) > 5)
 			{
-				logw("READ_HOLD_REGISTER error: %d", (addr + words));
+				logw("READ_INPUT_REGISTER error: %d", (addr + words));
 				response.setError(request.getServerID(), request.getFunctionCode(), ILLEGAL_DATA_ADDRESS);
 			}
-			float WaterLevel = _Sensor.WaterLevel();
+			uint16_t WaterLevel = (uint16_t)_Sensor.Level();
 			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)(words * 2));
 			response.add(WaterLevel);
 			return response;
 		};
-
+		// READ_COIL
 		auto modbusFC01 = [this](ModbusMessage request) -> ModbusMessage{
 
 			ModbusMessage response; // The Modbus message we are going to give back
@@ -129,17 +130,17 @@ namespace FloatLevelNS
 			response.add(request.getServerID(), request.getFunctionCode(), (uint8_t)coilset.size(), coilset);
 			return response;
 		};
-		MBserver.registerWorker(modbusID.value(), READ_HOLD_REGISTER, modbusFC03);
+		MBserver.registerWorker(modbusID.value(), READ_INPUT_REGISTER, modbusFC04);
 		MBserver.registerWorker(modbusID.value(), READ_COIL, modbusFC01);
 	}
 
 	String Tank::Process()
 	{
 		String s;
-		float waterLevel = _Sensor.WaterLevel();
-		if (abs(_lastWaterLevel - waterLevel) > SensorWaterLevelGranularity) // limit broadcast to SensorWaterLevelGranularity % change
+		float waterLevel = _Sensor.Level();
+		if (abs(_lastWaterLevel - waterLevel) > 1.0) // limit broadcast to SensorWaterLevelGranularity % change
 		{
-			waterLevel = waterLevel <= SensorWaterLevelGranularity ? 0 : waterLevel;
+			waterLevel = waterLevel <= 1.0 ? 0 : waterLevel;
 			_lastWaterLevel = waterLevel;
 			boolean s1 = waterLevel > levelParam1.value();
 			boolean s2 = waterLevel > levelParam2.value();

@@ -4,7 +4,7 @@
 #include "IOTCallbackInterface.h"
 #include <ModbusServerTCPasync.h>
 #include "IOTServiceInterface.h"
-#include "Sensor.h"
+#include "AnalogSensor.h"
 
 namespace FloatLevelNS
 {
@@ -31,7 +31,7 @@ namespace FloatLevelNS
 	private:
 		IOTServiceInterface* _iot;
 		boolean _discoveryPublished = false;
-		Sensor _Sensor = Sensor(SensorPin);
+		AnalogSensor _Sensor = AnalogSensor(SensorPin);
 		ModbusServerTCPasync MBserver;
 		float _lastWaterLevel = 0;
 	};
