@@ -1,4 +1,9 @@
-<html>
+#pragma once
+
+#include "Arduino.h"
+
+const  char Home_HTML[] PROGMEM =  R"rawliteral(
+    <html>
     <head>
 	<title>Water Level</title>
 
@@ -86,3 +91,8 @@
       </script>
   </body>
   </html>
+};
+)rawliteral";
+
+
+   

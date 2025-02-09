@@ -13,6 +13,7 @@
 #include "IOT.h"
 #include "Sensor.h"
 #include "Tank.h"
+#include "index.h"
 
 #define WATCHDOG_TIMER 600000 // time in ms to trigger the watchdog
 
@@ -87,24 +88,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 	}
 }
 
-void setupFileSystem()
-{
-	if (!SPIFFS.begin())
-	{
-		logd("Failed to mount file system");
-	}
-	else
-	{
-		File root = SPIFFS.open("/");
-		File file = root.openNextFile();
-		while (file)
-		{
-			logd("FILE: %s", file.name());
-			file = root.openNextFile();
-		}
-	}
-}
-
 void WiFiEvent(WiFiEvent_t event)
 {
 	switch (event)
@@ -126,13 +109,7 @@ void WiFiEvent(WiFiEvent_t event)
 
 void handleRoot()
 {
-	File f = SPIFFS.open("/index.htm", "r");
-	if (!f)
-	{
-		logw("***********index.htm not uploaded to device, use PlatformIO -> Upload Filesystem Image***********");
-		return;
-	}
-	_webServer.streamFile(f, "text/html");
+	_webServer.send(200, "text/html", Home_HTML);
 }
 
 void setup()
@@ -146,7 +123,6 @@ void setup()
 	_workerThreadWaterLevelMonitor->onRun(runWaterLevelMonitor);
 	_workerThreadWaterLevelMonitor->setInterval(20);
 	_controller.add(_workerThreadWaterLevelMonitor);
-	setupFileSystem();
 	WiFi.onEvent(WiFiEvent);
 	_tank->setup(&_iot);
 	_iot.Init(_tank);
