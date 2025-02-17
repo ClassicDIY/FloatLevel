@@ -24,7 +24,7 @@ namespace FloatLevelNS
 	iotwebconf::IntTParameter<int16_t> mqttPortParam = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("mqttPort").label("MQTT port").defaultValue(1883).build();
 	iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN> mqttUserNameParam = iotwebconf::Builder<iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN>>("mqttUserName").label("MQTT user").defaultValue("").build();
 	iotwebconf::PasswordTParameter<IOTWEBCONF_WORD_LEN> mqttUserPasswordParam = iotwebconf::Builder<iotwebconf::PasswordTParameter<IOTWEBCONF_WORD_LEN>>("mqttUserPassword").label("MQTT password").defaultValue("").build();
-	iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN> mqttTankNameParam = iotwebconf::Builder<iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN>>("tankName").label("MQTT Tank Name").defaultValue("Tank1").build();
+	iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN> mqttSubtopicParam = iotwebconf::Builder<iotwebconf::TextTParameter<IOTWEBCONF_WORD_LEN>>("tankName").label("MQTT Tank Name").defaultValue("Tank1").build();
 	iotwebconf::OptionalGroupHtmlFormatProvider optionalGroupHtmlFormatProvider;
 
 	void onMqttConnect(bool sessionPresent)
@@ -106,7 +106,7 @@ namespace FloatLevelNS
 			if (doc.containsKey("status"))
 			{
 				doc.clear();
-				doc["name"] = mqttTankNameParam.value();
+				doc["name"] = mqttSubtopicParam.value();
 				doc["sw_version"] = CONFIG_VERSION;
 				doc["IP"] = WiFi.localIP().toString().c_str();
 				doc["SSID"] = WiFi.SSID();
@@ -150,7 +150,10 @@ namespace FloatLevelNS
 		s += "</title></head><body>";
 		s += "<h2>";
 		s += _iotWebConf.getThingName();
-		s += " Settings</h2><hr><p>";
+		s += " Settings</h2>";
+		s += "<div style='font-size: .6em;'>Firmware config version ";
+		s += CONFIG_VERSION;
+		s +=  "</div><hr><p>";
 		s += _iot.IOTCB()->getSettingsHTML();
 		s += "</p>";
 		s += "MQTT:";
@@ -159,10 +162,11 @@ namespace FloatLevelNS
 		s += htmlConfigEntry<int16_t>(mqttPortParam.label, mqttPortParam.value());
 		s += htmlConfigEntry<char *>(mqttUserNameParam.label, mqttUserNameParam.value());
 		s += htmlConfigEntry<const char *>(mqttUserPasswordParam.label, strlen(mqttUserPasswordParam.value()) > 0 ? "********" : "");
-		s += htmlConfigEntry<char *>(mqttTankNameParam.label, mqttTankNameParam.value());
+		s += htmlConfigEntry<char *>(mqttSubtopicParam.label, mqttSubtopicParam.value());
 		s += "</ul>";
-		s += "<p>Go to <a href='config'>configure page</a> to change values.</p>";
 		s += "<p><a href='/'>Return to home page.</a></p>";
+		s += "<p><a href='config' >Configuration</a><div style='font-size: .6em;'> *Log in with 'admin', AP password (default is 12345678)</div></p>";
+		s += "<p><a href='firmware'>Firmware update</a></p>";
 		s += "<p><a href='reboot'>Reboot ESP32</a></p>";
 		s += "</body></html>\n";
 		_pWebServer->send(200, "text/html", s);
@@ -191,7 +195,7 @@ namespace FloatLevelNS
 		MQTT_group.addItem(&mqttPortParam);
 		MQTT_group.addItem(&mqttUserNameParam);
 		MQTT_group.addItem(&mqttUserPasswordParam);
-		MQTT_group.addItem(&mqttTankNameParam);
+		MQTT_group.addItem(&mqttSubtopicParam);
 		_iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
 		_iotWebConf.addSystemParameter(&MQTT_group);
 		_iotWebConf.addParameterGroup(_iotCB->parameterGroup());
@@ -255,7 +259,7 @@ namespace FloatLevelNS
 				{
 					strcat(_rootTopicPrefix, "/");
 				}
-				strcat(_rootTopicPrefix, mqttTankNameParam.value());
+				strcat(_rootTopicPrefix, mqttSubtopicParam.value());
 				logd("rootTopicPrefix: %s", _rootTopicPrefix);
 				sprintf(_willTopic, "%s/tele/LWT", _rootTopicPrefix);
 				logd("_willTopic: %s", _willTopic);
@@ -393,7 +397,7 @@ namespace FloatLevelNS
 
 	std::string IOT::getSubtopicName()
 	{
-		std::string s(mqttTankNameParam.value());
+		std::string s(mqttSubtopicParam.value());
 		return s;
 	};
 
