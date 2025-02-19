@@ -4,35 +4,40 @@
 #include <IotWebConfTParameter.h>
 #include "CoilData.h"
 #include "Log.h"
+#include "WebLog.h"
 #include "HelperFunctions.h"
-#include "Defines.h"
 #include "Tank.h"
+#include <WebSocketsServer.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncTCP.h>
+#include "html.h"
+
 
 namespace FloatLevelNS
 {
-	iotwebconf::ParameterGroup Pump_group = iotwebconf::ParameterGroup("pumps", "Pumps");
-	iotwebconf::IntTParameter<int16_t> levelParam1 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level1").label("Level 1").defaultValue(20).min(1).max(100).step(1).placeholder("1..100").build();
-	iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Level 2").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
-	iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Level 3").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
-	iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Level 4").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
+	WebLog _webLog = WebLog();
+	AsyncWebServer asyncServer(ASYNC_WEBSERVER_PORT);
+	WebSocketsServer _webSocket = WebSocketsServer(WSOCKET_HOME_PORT);
+
+	iotwebconf::ParameterGroup Pump_group = iotwebconf::ParameterGroup("pumps", "Level");
+	iotwebconf::IntTParameter<int16_t> levelParam4 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level4").label("Overflow").defaultValue(80).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam3 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level3").label("Start Lag").defaultValue(60).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam2 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level2").label("Start Lead").defaultValue(40).min(1).max(100).step(1).placeholder("1..100").build();
+	iotwebconf::IntTParameter<int16_t> levelParam1 = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("level1").label("Stop").defaultValue(20).min(1).max(100).step(1).placeholder("1..100").build();
 
 	iotwebconf::OptionalParameterGroup Modbus_group = iotwebconf::OptionalParameterGroup("modbus", "Modbus", true);
 	iotwebconf::IntTParameter<int16_t> modbusPort = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("modbusPort").label("Modbus Port").defaultValue(502).build();
 	iotwebconf::IntTParameter<int16_t> modbusID = iotwebconf::Builder<iotwebconf::IntTParameter<int16_t>>("modbusID").label("Modbus ID").defaultValue(1).min(0).max(247).step(1).placeholder("1..10").build();
-
-	Tank::Tank() : MBserver() 
-	{
-	}
 
 	String Tank::getSettingsHTML()
 	{
 		String s;
 		s += "Tank:";
 		s += "<ul>";
-		s += htmlConfigEntry<int16_t>(levelParam1.label, levelParam1.value());
-		s += htmlConfigEntry<int16_t>(levelParam2.label, levelParam2.value());
-		s += htmlConfigEntry<int16_t>(levelParam3.label, levelParam3.value());
 		s += htmlConfigEntry<int16_t>(levelParam4.label, levelParam4.value());
+		s += htmlConfigEntry<int16_t>(levelParam3.label, levelParam3.value());
+		s += htmlConfigEntry<int16_t>(levelParam2.label, levelParam2.value());
+		s += htmlConfigEntry<int16_t>(levelParam1.label, levelParam1.value());	
 		s += "</ul>";
 
 		s += "Modbus:";
@@ -59,6 +64,21 @@ namespace FloatLevelNS
 			return false;
 		if (requiredParam(webRequestWrapper, levelParam4) == false)
 			return false;
+		if (levelParam1.value() >= levelParam2.value())
+		{
+			levelParam1.errorMessage = "Stop must be less than Start Lead";
+			return false;
+		}
+		if (levelParam2.value() >= levelParam3.value())
+		{
+			levelParam2.errorMessage = "Start Lead must be less than Start Lag";
+			return false;
+		}
+		if (levelParam3.value() >= levelParam4.value())
+		{
+			levelParam3.errorMessage = "Start Lag must be less than Overflow";
+			return false;
+		}
 		return true;
 	}
 
@@ -66,10 +86,10 @@ namespace FloatLevelNS
 	{
 		logd("setup");
 		_iot = iot;
-		Pump_group.addItem(&levelParam1);
-		Pump_group.addItem(&levelParam2);
-		Pump_group.addItem(&levelParam3);
 		Pump_group.addItem(&levelParam4);
+		Pump_group.addItem(&levelParam3);
+		Pump_group.addItem(&levelParam2);
+		Pump_group.addItem(&levelParam1);
 		Modbus_group.addItem(&modbusPort);
 		Modbus_group.addItem(&modbusID);
 		Pump_group.addItem(&Modbus_group);
@@ -80,7 +100,7 @@ namespace FloatLevelNS
 
 	}
 
-	void Tank::begin()
+	void Tank::onWiFiConnect()
 	{
 		_lastWaterLevel = 0;
 		if (!MBserver.isRunning())
@@ -132,13 +152,37 @@ namespace FloatLevelNS
 		};
 		MBserver.registerWorker(modbusID.value(), READ_INPUT_REGISTER, modbusFC04);
 		MBserver.registerWorker(modbusID.value(), READ_COIL, modbusFC01);
+
+		asyncServer.begin();
+		_webLog.begin(&asyncServer);
+		_webSocket.begin();
+		_webSocket.onEvent([this](uint8_t num, WStype_t type, uint8_t *payload, size_t length)
+						   { 
+			if (type == WStype_DISCONNECTED)
+			{
+				logi("[%u] Home Page Disconnected!\n", num);
+			}
+			else if (type == WStype_CONNECTED)
+			{
+				logi("[%u] Home Page Connected!\n", num);
+				_lastWaterLevel = -1; //force a broadcast
+			} });
+
+		asyncServer.on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+			String page = home_html;
+			page.replace("{n}", _iot->getThingName().c_str());
+			page.replace("{v}", CONFIG_VERSION);
+			page.replace("{hp}", String(WSOCKET_HOME_PORT));
+			page.replace("{cp}", String(IOTCONFIG_PORT));
+			request->send(200, "text/html", page);
+		});
 	}
 
-	String Tank::Process()
+	void Tank::Process()
 	{
 		String s;
 		float waterLevel = _Sensor.Level();
-		if (abs(_lastWaterLevel - waterLevel) > 1.0) // limit broadcast to SensorWaterLevelGranularity % change
+		if (waterLevel >= 0 && abs(_lastWaterLevel - waterLevel) > 1.0) // limit broadcast to 1% change
 		{
 			waterLevel = waterLevel <= 1.0 ? 0 : waterLevel;
 			_lastWaterLevel = waterLevel;
@@ -162,10 +206,12 @@ namespace FloatLevelNS
 			serializeJson(doc, s);
 			_iot->Online();
 			_iot->Publish("readings", s.c_str(), false);
-
+			_webSocket.broadcastTXT(s);
 			logd("Water Level: %f JSON: %s", waterLevel, s.c_str());
 		}
-		return s;
+		_webLog.process();
+		_webSocket.loop();
+		return;
 	}
 
 	void Tank::onMqttConnect(bool sessionPresent)
@@ -241,5 +287,16 @@ namespace FloatLevelNS
 			_iot->PublishHADiscovery(doc);
 			_discoveryPublished = true;
 		}
+	}
+	void Tank::onMqttMessage(char *topic, JsonDocument &doc)
+	{
+		logd("onMqttMessage %s", topic);
+		// if (doc.containsKey("command"))
+		// {
+		// 	if (strcmp(doc["command"], "Write Coil") == 0)
+		// 	{
+
+		// 	}
+		// }
 	}
 }
